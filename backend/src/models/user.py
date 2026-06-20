@@ -1,8 +1,13 @@
 from datetime import datetime
-from sqlalchemy import DateTime, String, func
-from src.db.base import Base
-from sqlalchemy.orm import Mapped, mapped_column
+from typing import TYPE_CHECKING
 
+from sqlalchemy import DateTime, String, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from src.db.base import Base
+
+if TYPE_CHECKING:
+    from src.models.bank_connection import BankConnection
 
 
 class User(Base):
@@ -13,6 +18,10 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(String)
     phone_number: Mapped[str | None] = mapped_column(String, nullable=True)
     name: Mapped[str | None] = mapped_column(String, nullable=True)
+    bank_connections: Mapped[list["BankConnection"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
