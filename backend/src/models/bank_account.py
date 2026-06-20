@@ -8,6 +8,7 @@ from src.db.base import Base
 
 if TYPE_CHECKING:
     from src.models.bank_connection import BankConnection
+    from src.models.transaction import Transaction
 
 
 class BankAccount(Base):
@@ -25,6 +26,10 @@ class BankAccount(Base):
     account_type: Mapped[str | None] = mapped_column(String, nullable=True)
     bank_connection: Mapped["BankConnection"] = relationship(
         back_populates="bank_accounts"
+    )
+    transactions: Mapped[list["Transaction"]] = relationship(
+        back_populates="bank_account",
+        cascade="all, delete-orphan",
     )
 
     created_at: Mapped[datetime] = mapped_column(
