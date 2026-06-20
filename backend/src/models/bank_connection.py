@@ -7,6 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.db.base import Base
 
 if TYPE_CHECKING:
+    from src.models.bank_account import BankAccount
     from src.models.user import User
 
 
@@ -36,6 +37,10 @@ class BankConnection(Base):
         server_default="CR",
     )
     user: Mapped["User"] = relationship(back_populates="bank_connections")
+    bank_accounts: Mapped[list["BankAccount"]] = relationship(
+        back_populates="bank_connection",
+        cascade="all, delete-orphan",
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
