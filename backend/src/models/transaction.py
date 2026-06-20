@@ -17,6 +17,7 @@ from src.db.base import Base
 
 if TYPE_CHECKING:
     from src.models.bank_account import BankAccount
+    from src.models.category import Category
 
 
 class Transaction(Base):
@@ -34,6 +35,15 @@ class Transaction(Base):
         ForeignKey("bank_accounts.id", ondelete="CASCADE"),
         index=True,
     )
+    category_id: Mapped[int | None] = mapped_column(
+        ForeignKey(
+            "categories.id",
+            ondelete="SET NULL",
+            name="fk_transactions_category_id_categories",
+        ),
+        index=True,
+        nullable=True,
+    )
     provider_transaction_id: Mapped[str | None] = mapped_column(
         String,
         nullable=True,
@@ -47,6 +57,9 @@ class Transaction(Base):
     debtor_name: Mapped[str | None] = mapped_column(String, nullable=True)
     status: Mapped[str] = mapped_column(String)
     bank_account: Mapped["BankAccount"] = relationship(
+        back_populates="transactions"
+    )
+    category: Mapped["Category | None"] = relationship(
         back_populates="transactions"
     )
 
