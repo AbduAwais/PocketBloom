@@ -1,4 +1,7 @@
 """Integration tests for the auth endpoints (signup + login)."""
+import jwt
+
+from src.core.config import settings
 from src.models.user import User
 
 
@@ -58,7 +61,7 @@ def test_signup_invalid_email_rejected(client):
     assert response.status_code == 422
 
 
-def test_login_succeeds_with_correct_credentials(client):
+def test_login_succeeds_with_correct_credentials(client, db_session):
     client.post(
         "/api/v1/auth/signup",
         json={"email": "carol@example.com", "password": "supersecret"},
@@ -68,7 +71,17 @@ def test_login_succeeds_with_correct_credentials(client):
         json={"email": "carol@example.com", "password": "supersecret"},
     )
     assert response.status_code == 200
-    assert response.json() == {"message": "Login successful"}
+    body = response.json()
+    assert body["token_type"] == "bearer"
+
+    payload = jwt.decode(
+        body["access_token"],
+        settings.jwt_secret_key,
+        algorithms=[settings.jwt_algorithm],
+        options={"require": ["sub", "iat", "exp"]},
+    )
+    user = db_session.query(User).filter(User.email == "carol@example.com").one()
+    assert payload["sub"] == str(user.id)
 
 
 def test_login_fails_with_wrong_password(client):
