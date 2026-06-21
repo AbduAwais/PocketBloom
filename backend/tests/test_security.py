@@ -1,8 +1,13 @@
 """Unit tests for password and token security helpers."""
-import jwt
+import pytest
 
 from src.core.config import settings
-from src.core.security import create_access_token, hash_password, verify_password
+from src.core.security import (
+    create_access_token,
+    decode_access_token,
+    hash_password,
+    verify_password,
+)
 
 
 def test_hash_password_is_not_plaintext():
@@ -27,15 +32,20 @@ def test_verify_password_rejects_wrong_password():
     assert verify_password("wrongpassword", hashed) is False
 
 
-def test_create_access_token_contains_user_and_expiration():
+def test_decode_access_token_returns_user_id():
     token = create_access_token(user_id=42)
 
-    payload = jwt.decode(
-        token,
-        settings.jwt_secret_key,
-        algorithms=[settings.jwt_algorithm],
-        options={"require": ["sub", "iat", "exp"]},
-    )
+    assert decode_access_token(token) == 42
 
-    assert payload["sub"] == "42"
-    assert payload["exp"] > payload["iat"]
+
+def test_decode_access_token_rejects_malformed_token():
+    with pytest.raises(ValueError, match="Invalid token"):
+        decode_access_token("not-a-valid-token")
+
+
+def test_decode_access_token_rejects_expired_token(monkeypatch):
+    monkeypatch.setattr(settings, "access_token_expire_minutes", -1)
+    token = create_access_token(user_id=42)
+
+    with pytest.raises(ValueError, match="Token has expired"):
+        decode_access_token(token)
