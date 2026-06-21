@@ -1,3 +1,4 @@
+from src.core.security import create_access_token
 from src.models.category import Category
 from src.models.user import User
 
@@ -10,11 +11,17 @@ def create_user(db_session, email="owner@example.com"):
     return user
 
 
+def auth_headers(user_id: int) -> dict[str, str]:
+    token = create_access_token(user_id)
+    return {"Authorization": f"Bearer {token}"}
+
+
 def test_create_category(client, db_session):
     user = create_user(db_session)
 
     response = client.post(
-        f"/api/v1/categories/?user_id={user.id}",
+        "/api/v1/categories/",
+        headers=auth_headers(user.id),
         json={"name": "Groceries"},
     )
 
@@ -25,23 +32,32 @@ def test_create_category(client, db_session):
 
 def test_create_category_rejects_unknown_user(client):
     response = client.post(
-        "/api/v1/categories/?user_id=999",
+        "/api/v1/categories/",
+        headers=auth_headers(999),
         json={"name": "Groceries"},
     )
 
-    assert response.status_code == 404
-    assert response.json()["detail"] == "User not found"
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Could not validate credentials"
 
 
 def test_create_duplicate_category_returns_conflict_and_rolls_back(
     client, db_session
 ):
     user = create_user(db_session)
-    url = f"/api/v1/categories/?user_id={user.id}"
+    url = "/api/v1/categories/"
+    headers = auth_headers(user.id)
 
-    assert client.post(url, json={"name": "Groceries"}).status_code == 201
-    duplicate = client.post(url, json={"name": "Groceries"})
-    after_rollback = client.post(url, json={"name": "Transport"})
+    assert (
+        client.post(url, headers=headers, json={"name": "Groceries"}).status_code
+        == 201
+    )
+    duplicate = client.post(url, headers=headers, json={"name": "Groceries"})
+    after_rollback = client.post(
+        url,
+        headers=headers,
+        json={"name": "Transport"},
+    )
 
     assert duplicate.status_code == 409
     assert duplicate.json()["detail"] == (
@@ -57,7 +73,8 @@ def test_update_category_rejects_empty_body(client, db_session):
     db_session.commit()
 
     response = client.patch(
-        f"/api/v1/categories/{category.id}?user_id={user.id}",
+        f"/api/v1/categories/{category.id}",
+        headers=auth_headers(user.id),
         json={},
     )
 
@@ -72,7 +89,8 @@ def test_user_cannot_update_another_users_category(client, db_session):
     db_session.commit()
 
     response = client.patch(
-        f"/api/v1/categories/{category.id}?user_id={other_user.id}",
+        f"/api/v1/categories/{category.id}",
+        headers=auth_headers(other_user.id),
         json={"name": "Changed"},
     )
 
@@ -87,7 +105,8 @@ def test_delete_category(client, db_session):
     db_session.commit()
 
     response = client.delete(
-        f"/api/v1/categories/{category.id}?user_id={user.id}"
+        f"/api/v1/categories/{category.id}",
+        headers=auth_headers(user.id),
     )
 
     assert response.status_code == 204

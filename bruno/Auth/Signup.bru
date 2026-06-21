@@ -17,10 +17,3 @@ body:json {
     "name": "{{user_name}}"
   }
 }
-
-script:post-response {
-  const body = res.getBody();
-  if (res.getStatus() === 201 && body.id) {
-    bru.setEnvVar("user_id", String(body.id));
-  }
-}

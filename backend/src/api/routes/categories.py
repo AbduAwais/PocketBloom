@@ -1,31 +1,21 @@
 import logging
-from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from src.db.dependencies import get_db
+from src.db.dependencies import get_current_user, get_db
 from src.models.category import Category
 from src.models.user import User
 from src.schemas.category import CategoryCreate, CategoryRead, CategoryUpdate
 
 
 logger = logging.getLogger(__name__)
-UserId = Annotated[int, Query(gt=0)]
 
 router = APIRouter(
     prefix="/categories",
     tags=["categories"],
 )
-
-
-def _require_user(user_id: int, db: Session) -> None:
-    if db.get(User, user_id) is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
 
 
 def _commit(db: Session, conflict_detail: str) -> None:
@@ -47,9 +37,11 @@ def _commit(db: Session, conflict_detail: str) -> None:
 
 
 @router.get("/", response_model=list[CategoryRead])
-def read_categories(user_id: UserId, db: Session = Depends(get_db)):
-    _require_user(user_id, db)
-    return db.query(Category).filter(Category.user_id == user_id).all()
+def read_categories(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return db.query(Category).filter(Category.user_id == current_user.id).all()
 
 
 @router.post(
@@ -59,11 +51,10 @@ def read_categories(user_id: UserId, db: Session = Depends(get_db)):
 )
 def create_category(
     data: CategoryCreate,
-    user_id: UserId,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    _require_user(user_id, db)
-    category = Category(user_id=user_id, **data.model_dump())
+    category = Category(user_id=current_user.id, **data.model_dump())
     db.add(category)
     _commit(db, "A category with this name already exists")
     db.refresh(category)
@@ -74,12 +65,12 @@ def create_category(
 def update_category(
     category_id: int,
     data: CategoryUpdate,
-    user_id: UserId,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     db_category = (
         db.query(Category)
-        .filter(Category.id == category_id, Category.user_id == user_id)
+        .filter(Category.id == category_id, Category.user_id == current_user.id)
         .first()
     )
     if db_category is None:
@@ -99,12 +90,12 @@ def update_category(
 @router.delete("/{category_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_category(
     category_id: int,
-    user_id: UserId,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Response:
     db_category = (
         db.query(Category)
-        .filter(Category.id == category_id, Category.user_id == user_id)
+        .filter(Category.id == category_id, Category.user_id == current_user.id)
         .first()
     )
     if db_category is None:
