@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pytest
 from pydantic import ValidationError
 
-from src.schemas.budget import BudgetCreate, BudgetRead
+from src.schemas.budget import BudgetCreate, BudgetRead, BudgetUpdate
 
 
 def valid_budget_data(**overrides):
@@ -87,3 +87,31 @@ def test_budget_read_supports_orm_attributes():
     assert budget.category_id == 1
     assert budget.is_active is True
 
+
+def test_budget_update_accepts_and_normalizes_partial_data():
+    update = BudgetUpdate(amount=Decimal("3000.00"), currency=" usd ")
+
+    assert update.amount == Decimal("3000.00")
+    assert update.currency == "USD"
+    assert update.model_dump(exclude_unset=True) == {
+        "amount": Decimal("3000.00"),
+        "currency": "USD",
+    }
+
+
+def test_budget_update_rejects_empty_data():
+    with pytest.raises(ValidationError, match="At least one field"):
+        BudgetUpdate()
+
+
+def test_budget_update_rejects_explicit_null():
+    with pytest.raises(ValidationError, match="amount cannot be null"):
+        BudgetUpdate(amount=None)
+
+
+def test_budget_update_rejects_invalid_complete_period():
+    with pytest.raises(ValidationError, match="period_end must be on or after"):
+        BudgetUpdate(
+            period_start=date(2026, 6, 30),
+            period_end=date(2026, 6, 1),
+        )

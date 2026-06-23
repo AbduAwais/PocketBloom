@@ -1,0 +1,25 @@
+meta {
+  name: Replace Budget
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{base_url}}/budgets/{{budget_id}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+
+body:json {
+  {
+    "category_id": {{category_id}},
+    "amount": "2750.00",
+    "currency": "DKK",
+    "period_start": "2026-06-01",
+    "period_end": "2026-06-30"
+  }
+}

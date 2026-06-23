@@ -1,0 +1,32 @@
+meta {
+  name: Create Budget
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/budgets/
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+
+body:json {
+  {
+    "category_id": {{category_id}},
+    "amount": "2500.00",
+    "currency": "DKK",
+    "period_start": "2026-06-01",
+    "period_end": "2026-06-30"
+  }
+}
+
+script:post-response {
+  const body = res.getBody();
+  if (res.getStatus() === 201 && body.id) {
+    bru.setEnvVar("budget_id", String(body.id));
+  }
+}
