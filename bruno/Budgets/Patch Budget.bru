@@ -1,0 +1,21 @@
+meta {
+  name: Patch Budget
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{base_url}}/budgets/{{budget_id}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+
+body:json {
+  {
+    "amount": "3000.00"
+  }
+}

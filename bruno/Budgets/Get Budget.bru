@@ -1,0 +1,15 @@
+meta {
+  name: Get Budget
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/budgets/{{budget_id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}

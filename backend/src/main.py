@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
 from src.api.routes.auth import router as auth_router
+from src.api.routes.budgets import router as budgets_router
 from src.api.routes.categories import router as categories_router
 from src.api.routes.health import router as health_router
 from src.api.routes.system import router as system_router
@@ -12,3 +13,4 @@ app.include_router(health_router, prefix=settings.api_v1_prefix)
 app.include_router(system_router, prefix=settings.api_v1_prefix)
 app.include_router(auth_router, prefix=settings.api_v1_prefix)
 app.include_router(categories_router, prefix=settings.api_v1_prefix)
+app.include_router(budgets_router, prefix=settings.api_v1_prefix)
